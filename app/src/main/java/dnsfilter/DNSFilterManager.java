@@ -66,7 +66,7 @@ import util.conpool.TLSSocketFactory;
 
 public class DNSFilterManager extends ConfigurationAccess  {
 
-	public static final String VERSION = "1505802-dev";
+	public static final String VERSION = "1505802-dev02";
 
 	private static DNSFilterManager INSTANCE = new DNSFilterManager();
 
@@ -584,6 +584,8 @@ public class DNSFilterManager extends ConfigurationAccess  {
 			zipFile(zip, new File(getPath()+"VERSION.TXT"));
 			zip.finish();
 			zip.close();
+			out.flush();
+			out.close();
 		} catch (IOException e) {
 			throw new ConfigurationAccessException(e.getMessage(), e);
 		}
