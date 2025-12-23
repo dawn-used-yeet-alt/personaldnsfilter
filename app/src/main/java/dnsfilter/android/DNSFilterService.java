@@ -791,6 +791,15 @@ public class DNSFilterService extends VpnService  {
 		DNSFilterManager.getInstance().switchBlockingActive();
 		DNSProxyActivity.reloadLocalConfig();
 		updateNotification();
+
+		// Handle auto-re-enable timer for notification button toggle
+		if (!isFilterActive()) {
+			// Blocking disabled - start 2-minute timer to auto-re-enable
+			DNSProxyActivity.startAutoReEnableTimer();
+		} else {
+			// Blocking enabled - cancel any pending auto-re-enable timer
+			DNSProxyActivity.cancelAutoReEnableTimer();
+		}
 	}
 
 	/**

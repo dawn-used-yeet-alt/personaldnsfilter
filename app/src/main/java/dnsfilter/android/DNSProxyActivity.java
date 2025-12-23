@@ -284,6 +284,22 @@ public class DNSProxyActivity extends Activity
 
 	private static FilterAutoReEnableListener filterAutoReEnableTO = new FilterAutoReEnableListener();
 
+	/**
+	 * Start the auto-re-enable timer (2 minutes) when blocking is disabled.
+	 * Can be called from other classes like DNSFilterService.
+	 */
+	public static void startAutoReEnableTimer() {
+		filterAutoReEnableTO.startTimer();
+	}
+
+	/**
+	 * Cancel the auto-re-enable timer when blocking is manually re-enabled.
+	 * Can be called from other classes like DNSFilterService.
+	 */
+	public static void cancelAutoReEnableTimer() {
+		filterAutoReEnableTO.cancelTimer();
+	}
+
 	private static Spanned fromHtml(String txt) {
 		if (Build.VERSION.SDK_INT >= 24)
 			return Html.fromHtml(txt, 0);
