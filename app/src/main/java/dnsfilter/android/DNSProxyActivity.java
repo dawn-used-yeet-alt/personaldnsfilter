@@ -229,6 +229,61 @@ public class DNSProxyActivity extends Activity
 
 	private static MsgTimeoutListener MsgTO = new MsgTimeoutListener();
 
+	// Auto-re-enable blocking after 2 minutes if user disabled it
+	private static class FilterAutoReEnableListener implements TimeoutListener {
+
+		private static final int AUTO_REENABLE_TIMEOUT_MS = 120000; // 2 minutes
+
+		long timeout = Long.MAX_VALUE;
+		DNSProxyActivity activity;
+		boolean pending = false;
+
+		public void setActivity(DNSProxyActivity activity) {
+			this.activity = activity;
+		}
+
+		public void startTimer() {
+			this.timeout = System.currentTimeMillis() + AUTO_REENABLE_TIMEOUT_MS;
+			this.pending = true;
+			TimoutNotificator.getInstance().register(this);
+			Logger.getLogger().logLine("Blocking paused - will auto-re-enable in 2 minutes");
+		}
+
+		public void cancelTimer() {
+			if (pending) {
+				TimoutNotificator.getInstance().unregister(this);
+				pending = false;
+				Logger.getLogger().logLine("Auto-re-enable timer cancelled");
+			}
+		}
+
+		@Override
+		public void timeoutNotification() {
+			pending = false;
+			if (activity != null && CONFIG.isLocal()) {
+				activity.runOnUiThread(new Runnable() {
+					@Override
+					public void run() {
+						if (enableAdFilterCheck != null && !enableAdFilterCheck.isChecked()) {
+							enableAdFilterCheck.setChecked(true);
+							activity.persistConfig();
+							activity.handleRestart();
+							Logger.getLogger().logLine("Blocking auto-re-enabled after 2 minutes");
+							Logger.getLogger().message("Blocking auto-re-enabled!");
+						}
+					}
+				});
+			}
+		}
+
+		@Override
+		public long getTimoutTime() {
+			return timeout;
+		}
+	}
+
+	private static FilterAutoReEnableListener filterAutoReEnableTO = new FilterAutoReEnableListener();
+
 	private static Spanned fromHtml(String txt) {
 		if (Build.VERSION.SDK_INT >= 24)
 			return Html.fromHtml(txt, 0);
@@ -342,6 +397,7 @@ public class DNSProxyActivity extends Activity
 			DISPLAY_HEIGTH= ((WindowManager) getSystemService(WINDOW_SERVICE)).getDefaultDisplay().getHeight();
 
 			MsgTO.setActivity(this);
+			filterAutoReEnableTO.setActivity(this);
 			INSTANCE = this;
 
 			if (Build.VERSION.SDK_INT >= 21) {
@@ -1163,6 +1219,17 @@ public class DNSProxyActivity extends Activity
 		}
 
 		persistConfig();
+
+		// Handle auto-re-enable timer for blocking checkbox
+		if (destination == enableAdFilterCheck) {
+			if (!enableAdFilterCheck.isChecked()) {
+				// Blocking disabled - start 2-minute timer to auto-re-enable
+				filterAutoReEnableTO.startTimer();
+			} else {
+				// Blocking enabled - cancel any pending auto-re-enable timer
+				filterAutoReEnableTO.cancelTimer();
+			}
+		}
 
 		if (destination == remoteCtrlBtn) {
 			if (!switchingConfig) {
